@@ -1,79 +1,108 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System;
 using UnityEngine;
+using BepInEx.Logging;
 
 namespace MuckCheat
 {
+    // Renamed to "GlobalManager" or "CheatManager" to be more descriptive,
+    // but you can keep "GlobalVariables" if you prefer.
     internal class GlobalVariables : Util
     {
-        // Property to access the singleton instance of this class
-        internal static GlobalVariables Instance { get; } = new GlobalVariables();
+        // Singleton instance, making it readonly to prevent runtime changes
+        internal static readonly GlobalVariables Instance = new GlobalVariables();
 
-        // Logger for logging messages
-        internal BepInEx.Logging.ManualLogSource logger = BepInEx.Logging.Logger.CreateLogSource("MuckCheat");
+        // BepInEx logger instance
+        // Moved to a property style for clarity
+        internal ManualLogSource Logger { get; } = BepInEx.Logging.Logger.CreateLogSource("MuckCheat");
 
-        // Game object variable, might represent some object in the game
-        internal GameObject cheatObject;
+        // The cheatObject might represent your custom in-game object
+        internal GameObject CheatObject { get; set; }
 
-        // Class storing information about player status
-        internal PlayerStatus playerStatus;
+        // PlayerStatus variable
+        // Encouraging short inline docs for clarity.
+        internal PlayerStatus PlayerStatus { get; private set; }
 
-        // guiSkin variable to store the GUI skin
-        internal GUISkin guiSkin;
-
-        // style variable to store the GUI style
-        internal GUIStyle style;
-
-        // Variables to store the status of cheats
-        internal bool mobESP = false;
-        internal bool chestESP = false;
-        private Camera mainCamera;
-
-        // Private constructor to prevent instantiation of this class
-        private GlobalVariables() { }
-
-        // Method to retrieve player status and update it if it's not set
-        public PlayerStatus GetPlayerStatus()
+        // GUI elements
+        internal GUISkin GuiSkin { get; set; }
+        private GUIStyle _style;
+        
+        // Public accessor for GUIStyle with lazy initialization
+        public GUIStyle Style
         {
-            if (playerStatus == null)
+            get
             {
-                playerStatus = PlayerStatus.Instance;
+                if (_style == null)
+                {
+                    _style = new GUIStyle
+                    {
+                        normal =
+                        {
+                            textColor = Color.red,
+                            background = Texture2D.whiteTexture
+                        }
+                    };
+                }
+                return _style;
             }
-            return playerStatus;
         }
 
-        // Check if the singleton instance of this class is null
+        // Cheat toggles
+        internal bool MobESP { get; set; } = false;
+        internal bool ChestESP { get; set; } = false;
+
+        // Cached reference to main camera
+        private Camera _mainCamera;
+
+        // Private constructor to enforce singleton usage
+        private GlobalVariables() { }
+
+        /// <summary>
+        /// Retrieves (and caches) the PlayerStatus singleton instance, if not already set.
+        /// </summary>
+        public PlayerStatus GetPlayerStatus()
+        {
+            // If PlayerStatus is not set, fetch from the actual PlayerStatus singleton
+            if (PlayerStatus == null)
+            {
+                PlayerStatus = PlayerStatus.Instance;
+            }
+            return PlayerStatus;
+        }
+
+        /// <summary>
+        /// Checks whether our GlobalVariables instance is null. This should always be false
+        /// given the static initialization, but kept for consistency if needed.
+        /// </summary>
         public static bool IsNull() => Instance == null;
 
-        // Method to log a message to the console with a yellow background color
+        /// <summary>
+        /// Logs a message with a red background in the Unity console (via BepInEx logger).
+        /// </summary>
         public void Log(string message)
         {
+            // If you really want the console background color changed in a standard .NET console,
+            // this won't necessarily affect Unity's console, only real system console.
             Console.BackgroundColor = ConsoleColor.DarkRed;
-            logger.LogInfo(message);
+            Logger.LogInfo(message);
             Console.ResetColor();
         }
 
-        // Method to get the main camera and update it if it's not set
+        /// <summary>
+        /// Returns the main camera. If not found or set, retrieve Camera.main.
+        /// </summary>
         public Camera GetMainCamera()
         {
-            if (mainCamera == null)
+            if (_mainCamera == null)
             {
-                mainCamera = Camera.main;
+                _mainCamera = Camera.main;
+                if (_mainCamera == null)
+                {
+                    // Log or handle the fact that Camera.main is not found
+                    Log("Warning: Main Camera not found.");
+                }
             }
-            return mainCamera;
-        }
-        
-        public GUIStyle Style()
-        {
-            if (style != null)
-                return style;
-            style = new GUIStyle();
-            style.normal.textColor = Color.red;
-            style.normal.background = Texture2D.whiteTexture;
-            return style;
+            return _mainCamera;
         }
     }
 }
+﻿
